@@ -4,6 +4,7 @@ import os
 
 # Calcula a Normalized Cross-Correlation (NCC) entre duas imagens.
 def calculate_ncc(imagem1, imagem2):
+
     imagem1_gray = cv2.cvtColor(imagem1, cv2.COLOR_BGR2GRAY)
     imagem2_gray = cv2.cvtColor(imagem2, cv2.COLOR_BGR2GRAY)
 
@@ -22,26 +23,29 @@ def calculate_ncc(imagem1, imagem2):
     ncc = np.mean(imagem1_normalized * imagem2_normalized)
     return ncc
 
-# Calcula a velocidade média.
+# Calcula a velocidade media.
 def calcular_velocidade_media(distancia, tempo):
+
     if tempo <= 0:
         raise ValueError("O tempo precisa ser maior que zero")
     velocidade_media_m_s = distancia / tempo
     velocidade_media_km_h = velocidade_media_m_s * 3.6
     return velocidade_media_m_s, velocidade_media_km_h
 
-# Função para receber arquivo de vídeo
+# Função para receber arquivo de video
 def load_video(video_path):
-    if not os.path.exists(video_path):  # Verifica se o arquivo de vídeo existe
+
+    if not os.path.exists(video_path):  # Verifica se o arquivo de video existe
         raise ValueError("O arquivo de vídeo não existe. Verifique o caminho do arquivo.")
     
     cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():  # Verifica se o vídeo foi aberto corretamente
+    if not cap.isOpened():  # Verifica se o video foi aberto corretamente
         raise ValueError("Erro ao abrir o vídeo. Verifique o caminho do arquivo.")
     return cap
 
-# Função para extrair metadados básicos do vídeo
+# Função para extrair metadados basicos do video
 def get_video_metadata(video_cap):
+
     fps = video_cap.get(cv2.CAP_PROP_FPS)
     width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -54,8 +58,9 @@ def get_video_metadata(video_cap):
         "Total de quadros": frame_count
     }
 
-# Função para extrair frames específicos do vídeo
+# Função para extrair frames especificos do video
 def extract_frame(video_cap, frame_number):
+
     total_frames = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
     if frame_number < 0 or frame_number >= total_frames:
         raise ValueError(f"O número do quadro deve estar entre 0 e {total_frames - 1}")
@@ -67,14 +72,15 @@ def extract_frame(video_cap, frame_number):
     return frame
 
 # Função para sobrepor dois quadros em uma imagem
-def overlay_images(imageA, transparencyA, imageB, transparencyB):
-    if imageA.shape != imageB.shape:
+def overlay_images(imagemA, transparencyA, imagemB, transparencyB):
+    if imagemA.shape != imagemB.shape:
         raise ValueError("As imagens possuem tamanhos diferentes")
-    overlay = cv2.addWeighted(imageA, transparencyA, imageB, transparencyB, 0)
+    overlay = cv2.addWeighted(imagemA, transparencyA, imagemB, transparencyB, 0)
     return overlay
 
 # Testar as funções
 def main():
+
     # Carregar as imagens
     imagem1 = cv2.imread('Midia/IMAGEM_A.jpeg')
     imagem2 = cv2.imread('Midia/IMAGEM_B.jpeg')
@@ -96,23 +102,23 @@ def main():
     except ValueError as e:
         print(f"Erro ao calcular velocidade média: {e}")
 
-    # Caminho do vídeo
+    # Caminho do video
     video_path = 'Midia/VIDEO.mp4'
     print(f"Verificando o caminho do vídeo: {video_path}")
     print(f"O arquivo existe? {os.path.exists(video_path)}")
 
-    # Carregar o vídeo
+    # Carregar o video
     try:
         video_cap = load_video(video_path)
     except ValueError as e:
         print(e)
         return
 
-    # Obter metadados do vídeo
+    # Obter metadados do video
     metadata = get_video_metadata(video_cap)
     print("Metadados do vídeo:", metadata)
 
-    # Extrair frames específicos
+    # Extrair frames especificos
     frame_number1 = 100
     frame_number2 = 200
 
