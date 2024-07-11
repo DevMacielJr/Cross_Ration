@@ -1,3 +1,4 @@
+# -*- Coding: Latin-1 -*-
 import cv2
 import numpy as np
 import os
@@ -78,6 +79,16 @@ def overlay_images(imagemA, transparencyA, imagemB, transparencyB):
     overlay = cv2.addWeighted(imagemA, transparencyA, imagemB, transparencyB, 0)
     return overlay
 
+# Função para salvar a imagem sobreposta
+def save_image(image, output_path):
+    cv2.imwrite(output_path, image)
+    print(f"Imagem salva em: {output_path}")
+
+# Função para adicionar texto à imagem
+def add_text_to_image(image, text, position, font_scale=0.5, font_color=(0, 255, 255), font_thickness=1):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(image, text, position, font, font_scale, font_color, font_thickness, cv2.LINE_AA)
+
 # Testar as funções
 def main():
 
@@ -119,8 +130,8 @@ def main():
     print("Metadados do vídeo:", metadata)
 
     # Extrair frames especificos
-    frame_number1 = 100
-    frame_number2 = 200
+    frame_number1 = 17
+    frame_number2 = 20
 
     try:
         frame1 = extract_frame(video_cap, frame_number1)
@@ -132,10 +143,25 @@ def main():
     # Sobrepor os frames
     overlay_image = overlay_images(frame1, 0.5, frame2, 0.5)
 
+    # Adicionar texto à imagem sobreposta
+    metadata_text = f"FPS: {metadata['FPS']}, Resolução: {metadata['Resolução'][0]}x{metadata['Resolução'][1]}, Duração: {metadata['Duração (s)']:.2f}s, Total de quadros: {metadata['Total de quadros']}"
+    results_text = f"NCC: {ncc_value:.2f}, Velocidade média: {velocidade_media_m_s:.2f} m/s ({velocidade_media_km_h:.2f} km/h)"
+    combined_text = metadata_text + " | " + results_text
+
+    # Posição do texto na parte inferior da imagem
+    text_position = (10, overlay_image.shape[0] - 10)
+
+    # Adicionar texto à imagem
+    add_text_to_image(overlay_image, combined_text, text_position)
+
     # Mostrar a imagem sobreposta
     cv2.imshow('Overlay Image', overlay_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+    # Salvar a imagem sobreposta
+    output_path = 'Midia/overlay_image_with_text.png'
+    save_image(overlay_image, output_path)
 
 if __name__ == "__main__":
     main()
