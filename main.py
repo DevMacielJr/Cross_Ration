@@ -1,9 +1,9 @@
-# -*- Coding: Latin-1 -*-
 import cv2
 import numpy as np
 import os
 
-# Calcula a Normalized Cross-Correlation (NCC) entre duas imagens.
+#_________________________ Calcula a Normalized Cross-Correlation (NCC) entre duas imagens. ________________________#
+
 def calculate_ncc(imagem1, imagem2):
 
     imagem1_gray = cv2.cvtColor(imagem1, cv2.COLOR_BGR2GRAY)
@@ -24,27 +24,34 @@ def calculate_ncc(imagem1, imagem2):
     ncc = np.mean(imagem1_normalized * imagem2_normalized)
     return ncc
 
-# Calcula a velocidade media.
+#___________________________________________ Calcula a velocidade média. ___________________________________________#
+
 def calcular_velocidade_media(distancia, tempo):
 
     if tempo <= 0:
         raise ValueError("O tempo precisa ser maior que zero")
     velocidade_media_m_s = distancia / tempo
     velocidade_media_km_h = velocidade_media_m_s * 3.6
+
     return velocidade_media_m_s, velocidade_media_km_h
 
-# Função para receber arquivo de video
-def load_video(video_path):
+#______________________________________ Função para receber arquivo de vídeo. ______________________________________#
 
-    if not os.path.exists(video_path):  # Verifica se o arquivo de video existe
+def load_video(video_path):
+    
+    # Verifica se o arquivo de video existe.
+    if not os.path.exists(video_path):
         raise ValueError("O arquivo de vídeo não existe. Verifique o caminho do arquivo.")
     
     cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():  # Verifica se o video foi aberto corretamente
+
+    # Verifica se o video foi aberto corretamente.
+    if not cap.isOpened():  
         raise ValueError("Erro ao abrir o vídeo. Verifique o caminho do arquivo.")
     return cap
 
-# Função para extrair metadados basicos do video
+#_________________________________ Função para extrair metadados básicos do vídeo. _________________________________#
+
 def get_video_metadata(video_cap):
 
     fps = video_cap.get(cv2.CAP_PROP_FPS)
@@ -52,6 +59,7 @@ def get_video_metadata(video_cap):
     height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     frame_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
     duration = frame_count / fps
+
     return {
         "FPS": fps,
         "Resolução": (width, height),
@@ -59,7 +67,8 @@ def get_video_metadata(video_cap):
         "Total de quadros": frame_count
     }
 
-# Função para extrair frames especificos do video
+#________________________________ Função para extrair frames específicos do vídeo. _________________________________#
+
 def extract_frame(video_cap, frame_number):
 
     total_frames = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -72,29 +81,50 @@ def extract_frame(video_cap, frame_number):
         raise ValueError("Erro ao ler o quadro do vídeo. Verifique o número do quadro.")
     return frame
 
-# Função para sobrepor dois quadros em uma imagem
+#_________________________________ Função para sobrepor dois quadros em uma imagem._________________________________#
+
 def overlay_images(imagemA, transparencyA, imagemB, transparencyB):
+
     if imagemA.shape != imagemB.shape:
         raise ValueError("As imagens possuem tamanhos diferentes")
     overlay = cv2.addWeighted(imagemA, transparencyA, imagemB, transparencyB, 0)
     return overlay
 
-# Função para salvar a imagem sobreposta
+#_____________________________________ Função para salvar a imagem sobreposta. _____________________________________#
+
 def save_image(image, output_path):
+
     cv2.imwrite(output_path, image)
     print(f"Imagem salva em: {output_path}")
 
-# Função para adicionar texto à imagem
+#______________________________________ Função para adicionar texto à imagem. ______________________________________#
+
 def add_text_to_image(image, text, position, font_scale=0.5, font_color=(0, 255, 255), font_thickness=1):
+
     font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.putText(image, text, position, font, font_scale, font_color, font_thickness, cv2.LINE_AA)
 
-# Testar as funções
+#___________________________ Função de callback para capturar clique de mouse na imagem. ___________________________#
+
+def mouse_click(event, x, y, flags, param):
+
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print(f"Clique detectado nas coordenadas (x, y): ({x}, {y})")
+
+#_______________________________ Função para calcular distância euclidiana em pixels._______________________________#
+
+def calculate_distance(x1, y1, x2, y2):
+
+    distance = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    return distance
+
+#________________________________________________ Função principal ________________________________________________#
+
 def main():
 
     # Carregar as imagens
-    imagem1 = cv2.imread('Midia/IMAGEM_A.jpeg')
-    imagem2 = cv2.imread('Midia/IMAGEM_B.jpeg')
+    imagem1 = cv2.imread('IMAGEM_A.jpeg')
+    imagem2 = cv2.imread('IMAGEM_B.jpeg')
 
     if imagem1 is None or imagem2 is None:
         raise ValueError("Erro ao carregar as imagens. Verifique os caminhos dos arquivos.")
@@ -112,6 +142,15 @@ def main():
         print(f"Velocidade média: {velocidade_media_km_h} quilômetros por hora")
     except ValueError as e:
         print(f"Erro ao calcular velocidade média: {e}")
+
+    # Configurar callback para captura de clique de mouse
+    cv2.namedWindow('Imagem')  # Cria uma janela com o nome 'Imagem'
+    cv2.setMouseCallback('Imagem', mouse_click)  # Define a função de callback
+
+    # Mostrar a imagem
+    cv2.imshow('Imagem', imagem1)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     # Caminho do video
     video_path = 'Midia/VIDEO.mp4'
@@ -160,8 +199,15 @@ def main():
     cv2.destroyAllWindows()
 
     # Salvar a imagem sobreposta
-    output_path = 'Midia/overlay_image_with_text.png'
+    output_path = 'overlay_output.png'
     save_image(overlay_image, output_path)
+    print(f"Imagem sobreposta salva em: {output_path}")
+
+    # Exemplo de cálculo de distância entre dois pontos
+    x1, y1 = 100, 50
+    x2, y2 = 200, 150
+    distance_pixels = calculate_distance(x1, y1, x2, y2)
+    print(f"Distância euclidiana entre pontos em pixels: {distance_pixels}")
 
 if __name__ == "__main__":
     main()
