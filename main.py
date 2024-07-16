@@ -119,6 +119,47 @@ def calculate_distance(x1, y1, x2, y2):
     distance = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
     return distance
 
+# Função para sobrepor dois quadros em uma imagem
+def overlay_images(imagemA, transparencyA, imagemB, transparencyB):
+    if imagemA.shape != imagemB.shape:
+        raise ValueError("As imagens possuem tamanhos diferentes")
+    overlay = cv2.addWeighted(imagemA, transparencyA, imagemB, transparencyB, 0)
+    return overlay
+
+# Função para salvar a imagem sobreposta
+def save_image(image, output_path):
+    cv2.imwrite(output_path, image)
+    print(f"Imagem salva em: {output_path}")
+
+# Função para adicionar texto à imagem
+def add_text_to_image(image, text, position, font_scale=0.5, font_color=(0, 255, 255), font_thickness=1):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(image, text, position, font, font_scale, font_color, font_thickness, cv2.LINE_AA)
+# Função de callback para capturar clique de mouse na imagem
+
+def mouse_click(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        if 'image_name' in param and param['image_name'] == 'Imagem Sobreposta':
+            print(f"Clique detectado nas coordenadas (x, y): ({x}, {y})")
+            param['marked_points'].append((x, y))
+            cv2.circle(param['image'], (x, y), 5, (0, 0, 255), -1)
+
+# Função para pintar na imagem
+
+def paint_on_image(image, image_name):
+    cv2.imshow(image_name, image)
+    print("Pinte círculos vermelhos nos pontos desejados. Pressione 'Esc' para terminar e continuar.")
+    marked_points = []
+    mouse_params = {'image_name': image_name, 'image': image, 'marked_points': marked_points}
+    cv2.setMouseCallback(image_name, mouse_click, mouse_params)
+    while True:
+        cv2.imshow(image_name, image)
+        key = cv2.waitKey(1) & 0xFF
+        if key == 27:  # Pressione 'Esc' para sair
+            break
+    cv2.destroyAllWindows()
+    return marked_points
+
 #________________________________________________ Função principal ________________________________________________#
 
 def main():
@@ -188,7 +229,12 @@ def main():
     text_position = (10, overlay_image.shape[0] - 10)
 
     # Adicionar texto à imagem
-    add_text_to_image(overlay_image, combined_text, text_position)
+    combined_text = "Exemplo de texto combinado"
+    add_text_to_image(overlay_image, combined_text, (10, overlay_image.shape[0] - 10))
+
+    # Pintar na imagem
+    marked_points = paint_on_image(overlay_image.copy(), 'Imagem Sobreposta')
+
 
     # Mostrar a imagem sobreposta
     cv2.imshow('Imagem Sobreposta', overlay_image)
@@ -199,6 +245,12 @@ def main():
     output_path = 'overlay_output.png'
     save_image(overlay_image, output_path)
     print(f"Imagem sobreposta salva em: {output_path}")
+
+      # Mostrar os pontos marcados
+    if marked_points:
+        print("Pontos marcados (x, y):", marked_points)
+    else:
+        print("Nenhum ponto marcado.")
 
     # Capturar e mostrar o clique do mouse na imagem sobreposta
     clicked_point = mouse_params['clicked_point']
