@@ -110,6 +110,7 @@ def mouse_click(event, x, y, flags, param):
 
     if event == cv2.EVENT_LBUTTONDOWN:
         print(f"Clique detectado nas coordenadas (x, y): ({x}, {y})")
+        param['clicked_point'] = (x, y)
 
 #_______________________________ Função para calcular distância euclidiana em pixels._______________________________#
 
@@ -144,13 +145,9 @@ def main():
         print(f"Erro ao calcular velocidade média: {e}")
 
     # Configurar callback para captura de clique de mouse
-    cv2.namedWindow('Imagem')  # Cria uma janela com o nome 'Imagem'
-    cv2.setMouseCallback('Imagem', mouse_click)  # Define a função de callback
-
-    # Mostrar a imagem
-    cv2.imshow('Imagem', imagem1)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    cv2.namedWindow('Imagem Sobreposta')  # Cria uma janela com o nome 'Imagem Sobreposta'
+    mouse_params = {'clicked_point': None}  # Parâmetros que serão passados para a função de callback
+    cv2.setMouseCallback('Imagem Sobreposta', mouse_click, mouse_params)  # Define a função de callback
 
     # Caminho do video
     video_path = 'VIDEO.mp4'
@@ -194,7 +191,7 @@ def main():
     add_text_to_image(overlay_image, combined_text, text_position)
 
     # Mostrar a imagem sobreposta
-    cv2.imshow('Overlay Image', overlay_image)
+    cv2.imshow('Imagem Sobreposta', overlay_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -202,6 +199,11 @@ def main():
     output_path = 'overlay_output.png'
     save_image(overlay_image, output_path)
     print(f"Imagem sobreposta salva em: {output_path}")
+
+    # Capturar e mostrar o clique do mouse na imagem sobreposta
+    clicked_point = mouse_params['clicked_point']
+    if clicked_point:
+        print(f"Clique do mouse na imagem sobreposta nas coordenadas (x, y): {clicked_point}")
 
     # Exemplo de cálculo de distância entre dois pontos
     x1, y1 = 100, 50
