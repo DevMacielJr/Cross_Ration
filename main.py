@@ -153,7 +153,7 @@ def main():
     cv2.destroyAllWindows()
 
     # Caminho do video
-    video_path = 'Midia/VIDEO.mp4'
+    video_path = 'VIDEO.mp4'
     print(f"Verificando o caminho do vídeo: {video_path}")
     print(f"O arquivo existe? {os.path.exists(video_path)}")
 
