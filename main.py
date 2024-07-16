@@ -142,7 +142,7 @@ def mouse_click(event, x, y, flags, param):
         if 'image_name' in param and param['image_name'] == 'Imagem Sobreposta':
             print(f"Clique detectado nas coordenadas (x, y): ({x}, {y})")
             param['marked_points'].append((x, y))
-            cv2.circle(param['image'], (x, y), 5, (0, 0, 255), -1)
+            cv2.circle(param['image'], (x, y), 5, (0, 255, 255), -1)
 
 # Função para pintar na imagem
 
@@ -234,7 +234,6 @@ def main():
 
     # Pintar na imagem
     marked_points = paint_on_image(overlay_image.copy(), 'Imagem Sobreposta')
-
 
     # Mostrar a imagem sobreposta
     cv2.imshow('Imagem Sobreposta', overlay_image)
