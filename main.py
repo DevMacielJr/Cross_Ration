@@ -165,8 +165,8 @@ def paint_on_image(image, image_name):
 def main():
 
     # Carregar as imagens
-    imagem1 = cv2.imread('IMAGEM_A.jpeg')
-    imagem2 = cv2.imread('IMAGEM_B.jpeg')
+    imagem1 = cv2.imread("C:/Users/Plugify/Documents/Edson_Estagiario/Pericia/Razao_Cruzada/Midia/IMAGEM_A.jpeg")
+    imagem2 = cv2.imread("C:/Users/Plugify/Documents/Edson_Estagiario/Pericia/Razao_Cruzada/Midia/IMAGEM_B.jpeg")
 
     if imagem1 is None or imagem2 is None:
         raise ValueError("Erro ao carregar as imagens. Verifique os caminhos dos arquivos.")
@@ -191,7 +191,7 @@ def main():
     cv2.setMouseCallback('Imagem Sobreposta', mouse_click, mouse_params)  # Define a função de callback
 
     # Caminho do video
-    video_path = 'VIDEO.mp4'
+    video_path = 'C:/Users/Plugify/Documents/Edson_Estagiario/Pericia/Razao_Cruzada/Midia/VIDEO.mp4'
     print(f"Verificando o caminho do vídeo: {video_path}")
     print(f"O arquivo existe? {os.path.exists(video_path)}")
 
