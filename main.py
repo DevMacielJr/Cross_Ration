@@ -32,21 +32,17 @@ def calcular_velocidade_media(distancia, tempo):
         raise ValueError("O tempo precisa ser maior que zero")
     velocidade_media_m_s = distancia / tempo
     velocidade_media_km_h = velocidade_media_m_s * 3.6
-
     return velocidade_media_m_s, velocidade_media_km_h
 
 #______________________________________ Função para receber arquivo de vídeo. ______________________________________#
 
 def load_video(video_path):
-    
-    # Verifica se o arquivo de video existe.
+
     if not os.path.exists(video_path):
         raise ValueError("O arquivo de vídeo não existe. Verifique o caminho do arquivo.")
     
     cap = cv2.VideoCapture(video_path)
-
-    # Verifica se o video foi aberto corretamente.
-    if not cap.isOpened():  
+    if not cap.isOpened():
         raise ValueError("Erro ao abrir o vídeo. Verifique o caminho do arquivo.")
     return cap
 
@@ -111,45 +107,46 @@ def mouse_click(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         print(f"Clique detectado nas coordenadas (x, y): ({x}, {y})")
         param['clicked_point'] = (x, y)
+        param['marked_points'].append((x, y))
+        cv2.circle(param['image'], (x, y), 5, (0, 255, 255), -1)  # Marca o ponto clicado em amarelo na imagem
 
-#_______________________________ Função para calcular distância euclidiana em pixels._______________________________#
+#______________________________________ Função para receber dados do veículo. ______________________________________#
 
-def calculate_distance(x1, y1, x2, y2):
+def receber_dados_veiculo():
 
-    distance = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-    return distance
+    marca = input("Digite a marca do veículo: ")
+    modelo = input("Digite o modelo do veículo: ")
+    cor = input("Digite a cor do veículo: ")
+    tamanho_entre_eixos = float(input("Digite o tamanho do entre-eixos do veículo (em metros): "))
+    return marca, modelo, cor, tamanho_entre_eixos
 
-# Função para sobrepor dois quadros em uma imagem
-def overlay_images(imagemA, transparencyA, imagemB, transparencyB):
-    if imagemA.shape != imagemB.shape:
-        raise ValueError("As imagens possuem tamanhos diferentes")
-    overlay = cv2.addWeighted(imagemA, transparencyA, imagemB, transparencyB, 0)
-    return overlay
 
-# Função para salvar a imagem sobreposta
-def save_image(image, output_path):
-    cv2.imwrite(output_path, image)
-    print(f"Imagem salva em: {output_path}")
+#__________________________________ Função para calcular a relação pixels/metros. __________________________________#
 
-# Função para adicionar texto à imagem
-def add_text_to_image(image, text, position, font_scale=0.5, font_color=(0, 255, 255), font_thickness=1):
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(image, text, position, font, font_scale, font_color, font_thickness, cv2.LINE_AA)
-# Função de callback para capturar clique de mouse na imagem
+def calcular_relacao_pixels_metros(pontos_marcados, distancia_real_metros):
+    if len(pontos_marcados) != 4:
+        raise ValueError("É necessário marcar exatamente 4 pontos (T1, D1, T2, D2)")
 
-def mouse_click(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        if 'image_name' in param and param['image_name'] == 'Imagem Sobreposta':
-            print(f"Clique detectado nas coordenadas (x, y): ({x}, {y})")
-            param['marked_points'].append((x, y))
-            cv2.circle(param['image'], (x, y), 5, (0, 255, 255), -1)
+    # Extrair os pontos marcados
+    T1, D1, T2, D2 = pontos_marcados
 
-# Função para pintar na imagem
+    # Calcular as distâncias em pixels entre os pontos
+    distancia_pixels_T1_D1 = calculate_distance(T1[0], T1[1], D1[0], D1[1])
+    distancia_pixels_T2_D2 = calculate_distance(T2[0], T2[1], D2[0], D2[1])
 
-def paint_on_image(image, image_name):
+    # Calcular a relação pixels/metros para cada eixo (x e y)
+    relacao_pixels_metros_x = distancia_real_metros / ((distancia_pixels_T1_D1 + distancia_pixels_T2_D2) / 2)
+    relacao_pixels_metros_y = relacao_pixels_metros_x  # Supondo uma relação uniforme
+
+    return relacao_pixels_metros_x, relacao_pixels_metros_y
+
+
+#__________________________________ Função para pintar a imagem T1, D1, T2 E D2. __________________________________#
+
+def paint_on_image(image, image_name, marked_points):
+
     cv2.imshow(image_name, image)
-    print("Pinte círculos vermelhos nos pontos desejados. Pressione 'Esc' para terminar e continuar.")
-    marked_points = []
+    print("Pinte círculos amarelos nos pontos desejados (T1, D1, T2, D2). Pressione 'Esc' para terminar e continuar.")
     mouse_params = {'image_name': image_name, 'image': image, 'marked_points': marked_points}
     cv2.setMouseCallback(image_name, mouse_click, mouse_params)
     while True:
@@ -160,13 +157,24 @@ def paint_on_image(image, image_name):
     cv2.destroyAllWindows()
     return marked_points
 
+#__________________________________ Função para calcular a distância dos pontos. __________________________________#
+
+def calculate_distance(x1, y1, x2, y2):
+
+    return np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
 #________________________________________________ Função principal ________________________________________________#
 
 def main():
 
+    # Solicitar os caminhos das imagens e do vídeo
+    image_path1 = input("Digite o caminho da primeira imagem: ")
+    image_path2 = input("Digite o caminho da segunda imagem: ")
+    video_path = input("Digite o caminho do vídeo: ")
+
     # Carregar as imagens
-    imagem1 = cv2.imread("C:/Users/Plugify/Documents/Edson_Estagiario/Pericia/Razao_Cruzada/Midia/IMAGEM_A.jpeg")
-    imagem2 = cv2.imread("C:/Users/Plugify/Documents/Edson_Estagiario/Pericia/Razao_Cruzada/Midia/IMAGEM_B.jpeg")
+    imagem1 = cv2.imread(image_path1)
+    imagem2 = cv2.imread(image_path2)
 
     if imagem1 is None or imagem2 is None:
         raise ValueError("Erro ao carregar as imagens. Verifique os caminhos dos arquivos.")
@@ -185,15 +193,14 @@ def main():
     except ValueError as e:
         print(f"Erro ao calcular velocidade média: {e}")
 
-    # Configurar callback para captura de clique de mouse
-    cv2.namedWindow('Imagem Sobreposta')  # Cria uma janela com o nome 'Imagem Sobreposta'
-    mouse_params = {'clicked_point': None}  # Parâmetros que serão passados para a função de callback
-    cv2.setMouseCallback('Imagem Sobreposta', mouse_click, mouse_params)  # Define a função de callback
+    # Receber dados do veículo
+    marca, modelo, cor, tamanho_entre_eixos = receber_dados_veiculo()
+    print(f"Dados do veículo: Marca: {marca}, Modelo: {modelo}, Cor: {cor}, Tamanho entre eixos: {tamanho_entre_eixos} metros")
 
-    # Caminho do video
-    video_path = 'C:/Users/Plugify/Documents/Edson_Estagiario/Pericia/Razao_Cruzada/Midia/VIDEO.mp4'
-    print(f"Verificando o caminho do vídeo: {video_path}")
-    print(f"O arquivo existe? {os.path.exists(video_path)}")
+    # Configurar callback para captura de clique de mouse
+    cv2.namedWindow('Imagem Sobreposta')
+    mouse_params = {'clicked_point': None, 'marked_points': []}
+    cv2.setMouseCallback('Imagem Sobreposta', mouse_click, mouse_params)
 
     # Carregar o video
     try:
@@ -218,49 +225,56 @@ def main():
         return
 
     # Sobrepor os frames
-    overlay_image = overlay_images(frame1, 0.5, frame2, 0.5)
+    try:
+        overlay_image = overlay_images(frame1, 0.5, frame2, 0.5)
+    except ValueError as e:
+        print(e)
+        return
 
     # Adicionar texto à imagem sobreposta
     metadata_text = f"FPS: {metadata['FPS']}, Resolução: {metadata['Resolução'][0]}x{metadata['Resolução'][1]}, Duração: {metadata['Duração (s)']:.2f}s, Total de quadros: {metadata['Total de quadros']}"
     results_text = f"NCC: {ncc_value:.2f}, Velocidade média: {velocidade_media_m_s:.2f} m/s ({velocidade_media_km_h:.2f} km/h)"
     combined_text = metadata_text + " | " + results_text
 
-    # Posição do texto na parte inferior da imagem
     text_position = (10, overlay_image.shape[0] - 10)
-
-    # Adicionar texto à imagem
-    combined_text = "Exemplo de texto combinado"
-    add_text_to_image(overlay_image, combined_text, (10, overlay_image.shape[0] - 10))
+    add_text_to_image(overlay_image, combined_text, text_position)
 
     # Pintar na imagem
-    marked_points = paint_on_image(overlay_image.copy(), 'Imagem Sobreposta')
+    markers = ['T1', 'D1', 'T2', 'D2']
+    paint_on_image(overlay_image.copy(), 'Imagem Sobreposta', mouse_params['marked_points'])
 
-    # Mostrar a imagem sobreposta
-    cv2.imshow('Imagem Sobreposta', overlay_image)
-    cv2.waitKey(0)
+    # Mostrar a imagem sobreposta com os pontos marcados
+    for point, marker in zip(mouse_params['marked_points'], markers):
+        cv2.putText(overlay_image, marker, (point[0], point[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+        cv2.circle(overlay_image, (point[0], point[1]), 5, (0, 255, 255), -1)
+
+    cv2.imshow('Imagem Sobreposta com Pontos Marcados', overlay_image)
+    print("Pressione 'q' para fechar a janela.")
+
+    # Aguardar até que o usuário pressione 'q' para fechar a janela
+    while True:
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
     cv2.destroyAllWindows()
 
-    # Salvar a imagem sobreposta
-    output_path = 'overlay_output.png'
-    save_image(overlay_image, output_path)
-    print(f"Imagem sobreposta salva em: {output_path}")
+    # Calcular distâncias entre os pontos marcados
+    try:
+        T1, D1, T2, D2 = mouse_params['marked_points']
+    except ValueError:
+        print("Marque exatamente 4 pontos (T1, D1, T2, D2) na imagem sobreposta.")
+        return
 
-      # Mostrar os pontos marcados
-    if marked_points:
-        print("Pontos marcados (x, y):", marked_points)
-    else:
-        print("Nenhum ponto marcado.")
+    # Calcular a distância entre os pontos marcados (em pixels)
+    distance_pixels = calculate_distance(T1[0], T1[1], D1[0], D1[1])  # Distância entre T1 e D1
+    print(f"Distância euclidiana entre T1 e D1 em pixels: {distance_pixels:.2f}")
 
-    # Capturar e mostrar o clique do mouse na imagem sobreposta
-    clicked_point = mouse_params['clicked_point']
-    if clicked_point:
-        print(f"Clique do mouse na imagem sobreposta nas coordenadas (x, y): {clicked_point}")
-
-    # Exemplo de cálculo de distância entre dois pontos
-    x1, y1 = 100, 50
-    x2, y2 = 200, 150
-    distance_pixels = calculate_distance(x1, y1, x2, y2)
-    print(f"Distância euclidiana entre pontos em pixels: {distance_pixels}")
+    # Calcular a velocidade do veículo
+    try:
+        velocidade_media_m_s, velocidade_media_km_h = calcular_velocidade_media(distance_pixels, tempo_gasto)
+        print(f"Velocidade média do veículo: {velocidade_media_m_s:.2f} m/s ({velocidade_media_km_h:.2f} km/h)")
+    except ValueError as e:
+        print(f"Erro ao calcular velocidade média do veículo: {e}")
 
 if __name__ == "__main__":
     main()
