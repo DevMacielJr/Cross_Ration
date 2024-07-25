@@ -103,12 +103,25 @@ def add_text_to_image(image, text, position, font_scale=0.5, font_color=(0, 255,
 #___________________________ Função de callback para capturar clique de mouse na imagem. ___________________________#
 
 def mouse_click(event, x, y, flags, param):
-
     if event == cv2.EVENT_LBUTTONDOWN:
         print(f"Clique detectado nas coordenadas (x, y): ({x}, {y})")
         param['clicked_point'] = (x, y)
-        param['marked_points'].append((x, y))
-        cv2.circle(param['image'], (x, y), 5, (0, 255, 255), -1)  # Marca o ponto clicado em amarelo na imagem
+        markers = ['T1', 'D1', 'T2', 'D2']
+
+        if len(param['marked_points']) < 4:
+            param['marked_points'].append((x, y))
+        else:
+            # Substituir o último ponto com o novo ponto
+            param['marked_points'][-1] = (x, y)
+            print("Já existem 4 pontos. O último ponto foi substituído.")
+
+            # Redesenhar a imagem para mostrar os pontos atualizados
+        param['image_with_markers'] = param['image'].copy()
+        for i, point in enumerate(param['marked_points']):
+            cv2.circle(param['image_with_markers'], point, 5, (0, 255, 255), -1)
+            cv2.putText(param['image_with_markers'], markers[i], (point[0], point[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+        cv2.imshow(param['image_name'], param['image_with_markers'])
 
 #______________________________________ Função para receber dados do veículo. ______________________________________#
 
@@ -144,13 +157,12 @@ def calcular_relacao_pixels_metros(pontos_marcados, distancia_real_metros):
 #__________________________________ Função para pintar a imagem T1, D1, T2 E D2. __________________________________#
 
 def paint_on_image(image, image_name, marked_points):
-
     cv2.imshow(image_name, image)
     print("Pinte círculos amarelos nos pontos desejados (T1, D1, T2, D2). Pressione 'Esc' para terminar e continuar.")
-    mouse_params = {'image_name': image_name, 'image': image, 'marked_points': marked_points}
+    mouse_params = {'image_name': image_name, 'image': image, 'marked_points': marked_points, 'image_with_markers': image.copy()}
     cv2.setMouseCallback(image_name, mouse_click, mouse_params)
     while True:
-        cv2.imshow(image_name, image)
+        cv2.imshow(image_name, mouse_params['image_with_markers'])
         key = cv2.waitKey(1) & 0xFF
         if key == 27:  # Pressione 'Esc' para sair
             break
@@ -163,10 +175,38 @@ def calculate_distance(x1, y1, x2, y2):
 
     return np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
+#__________________________________ Função de cálculo principal. __________________________________#
+
+def calculate_cross_ratio(wheelbase, PF, UF, FPS, T1T2, T1D2, D1T2, D1D2):
+    speed = (wheelbase * FPS) / (PF - UF) * (cv2.sqrt((D1D2 * T1T2) / (T1D2 * D1T2)))
+
+#wheelbase: Entre-eixos
+#PF: Número do primeiro quadro de interesse extraído do vídeo 
+#UF: Número do último quadro de interesse extraído do vídeo 
+#FPS: Frames por segundo
+#T1T2: Distância entre a traseira 1 e traseira 2 (Pixeis)
+#T1D2: Distância entre a traseira 1 e Dianteira 2 (Pixeis)
+#D1T2: Distância entre a Dianteira 1 e traseira 2 (Pixeis)
+#D1D2: Distância entre a Dianteira 1 e Dianteira 2 (Pixeis)
+    return speed
+
+#__________________________________ Função para salvar os resultados. __________________________________#
+
+def save_results_to_file(filepath, data):
+    with open(filepath, 'w') as file:
+        for key, value in data.items():
+            file.write(f"{key}: {value}\n")
+    print(f"Resultados salvos em {filepath}")
+
+#__________________________________ Função para printar os resultados. __________________________________#
+
+def print_results(data):
+    for key, value in data.items():
+        print(f"{key}: {value}")
+
 #________________________________________________ Função principal ________________________________________________#
 
 def main():
-
     # Solicitar os caminhos das imagens e do vídeo
     image_path1 = input("Digite o caminho da primeira imagem: ")
     image_path2 = input("Digite o caminho da segunda imagem: ")
@@ -183,6 +223,11 @@ def main():
     ncc_value = calculate_ncc(imagem1, imagem2)
     print(f"Cross-Correlation: {ncc_value}")
 
+    # Receber dados do veículo
+    marca, modelo, cor, tamanho_entre_eixos = receber_dados_veiculo()
+    print(f"Dados do veículo: Marca: {marca}, Modelo: {modelo}, Cor: {cor}, Tamanho entre eixos: {tamanho_entre_eixos} metros")
+
+    # Solicitar dados de distância e tempo
     distancia_percorrida = float(input("Digite a distância percorrida em metros: "))
     tempo_gasto = float(input("Digite o tempo gasto em segundos: "))
 
@@ -193,27 +238,23 @@ def main():
     except ValueError as e:
         print(f"Erro ao calcular velocidade média: {e}")
 
-    # Receber dados do veículo
-    marca, modelo, cor, tamanho_entre_eixos = receber_dados_veiculo()
-    print(f"Dados do veículo: Marca: {marca}, Modelo: {modelo}, Cor: {cor}, Tamanho entre eixos: {tamanho_entre_eixos} metros")
-
     # Configurar callback para captura de clique de mouse
     cv2.namedWindow('Imagem Sobreposta')
     mouse_params = {'clicked_point': None, 'marked_points': []}
     cv2.setMouseCallback('Imagem Sobreposta', mouse_click, mouse_params)
 
-    # Carregar o video
+    # Carregar o vídeo
     try:
         video_cap = load_video(video_path)
     except ValueError as e:
         print(e)
         return
 
-    # Obter metadados do video
+    # Obter metadados do vídeo
     metadata = get_video_metadata(video_cap)
     print("Metadados do vídeo:", metadata)
 
-    # Extrair frames especificos
+    # Extrair frames específicos
     frame_number1 = 17
     frame_number2 = 20
 
@@ -241,10 +282,10 @@ def main():
 
     # Pintar na imagem
     markers = ['T1', 'D1', 'T2', 'D2']
-    paint_on_image(overlay_image.copy(), 'Imagem Sobreposta', mouse_params['marked_points'])
+    pontos_marcados = paint_on_image(overlay_image.copy(), 'Imagem Sobreposta', mouse_params['marked_points'])
 
     # Mostrar a imagem sobreposta com os pontos marcados
-    for point, marker in zip(mouse_params['marked_points'], markers):
+    for point, marker in zip(pontos_marcados, markers):
         cv2.putText(overlay_image, marker, (point[0], point[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
         cv2.circle(overlay_image, (point[0], point[1]), 5, (0, 255, 255), -1)
 
@@ -260,21 +301,44 @@ def main():
 
     # Calcular distâncias entre os pontos marcados
     try:
-        T1, D1, T2, D2 = mouse_params['marked_points']
+        T1, D1, T2, D2 = pontos_marcados
     except ValueError:
         print("Marque exatamente 4 pontos (T1, D1, T2, D2) na imagem sobreposta.")
         return
 
     # Calcular a distância entre os pontos marcados (em pixels)
-    distance_pixels = calculate_distance(T1[0], T1[1], D1[0], D1[1])  # Distância entre T1 e D1
-    print(f"Distância euclidiana entre T1 e D1 em pixels: {distance_pixels:.2f}")
+    T1T2 = calculate_distance(T1[0], T1[1], T2[0], T2[1])
+    T1D2 = calculate_distance(T1[0], T1[1], D2[0], D2[1])
+    D1T2 = calculate_distance(D1[0], D1[1], T2[0], T2[1])
+    D1D2 = calculate_distance(D1[0], D1[1], D2[0], D2[1])
+
+    FPS = metadata["FPS"]
+    PF = 0  # Defina os valores apropriados para PF e UF
+    UF = 100
 
     # Calcular a velocidade do veículo
+    speed = calculate_cross_ratio(tamanho_entre_eixos, PF, UF, FPS, T1T2, T1D2, D1T2, D1D2)
     try:
-        velocidade_media_m_s, velocidade_media_km_h = calcular_velocidade_media(distance_pixels, tempo_gasto)
-        print(f"Velocidade média do veículo: {velocidade_media_m_s:.2f} m/s ({velocidade_media_km_h:.2f} km/h)")
+        velocidade_media_m_s, velocidade_media_km_h = calcular_velocidade_media(speed, 1)
     except ValueError as e:
-        print(f"Erro ao calcular velocidade média do veículo: {e}")
+        print(f"Erro ao calcular a velocidade média do veículo: {e}")
+        return
+
+    resultados = {
+        "Marca": marca,
+        "Modelo": modelo,
+        "Cor": cor,
+        "Entre-eixos": tamanho_entre_eixos,
+        "Distância T1-T2 (pixels)": T1T2,
+        "Distância T1-D2 (pixels)": T1D2,
+        "Distância D1-T2 (pixels)": D1T2,
+        "Distância D1-D2 (pixels)": D1D2,
+        "Velocidade (m/s)": velocidade_media_m_s,
+        "Velocidade (km/h)": velocidade_media_km_h
+    }
+
+    print_results(resultados)
+    save_results_to_file("resultados.txt", resultados)
 
 if __name__ == "__main__":
     main()
